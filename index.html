@@ -304,35 +304,103 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
-            padding: 20px;
-            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border-radius: 20px;
             color: white;
             text-align: center;
             z-index: 1000;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
+            animation: modalAppear 0.5s ease-out;
+            border: 2px solid #ff0000;
         }
         .game-over-modal h2 {
             color: #ff0000;
             margin-bottom: 20px;
+            font-size: 36px;
+            text-shadow: 0 0 10px #ff0000;
+            animation: textGlow 1.5s ease-in-out infinite;
         }
-        .game-over-modal input {
-            padding: 10px;
-            margin: 10px 0;
-            width: 200px;
-            border-radius: 5px;
-            border: none;
+        .game-over-modal p {
+            font-size: 24px;
+            margin: 20px 0;
+            color: #fff;
+        }
+        .game-over-modal .final-level {
+            color: #ffd700;
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 0 0 15px #ffd700;
+            animation: levelPulse 2s ease-in-out infinite;
         }
         .game-over-modal button {
-            padding: 10px 20px;
-            margin: 10px;
+            padding: 15px 30px;
+            margin: 20px 10px;
             border: none;
-            border-radius: 5px;
-            background: #ff0000;
+            border-radius: 10px;
+            background: linear-gradient(45deg, #ff0000, #ff6b6b);
             color: white;
             cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(255, 0, 0, 0.3);
         }
         .game-over-modal button:hover {
-            background: #cc0000;
+            transform: scale(1.1);
+            box-shadow: 0 8px 20px rgba(255, 0, 0, 0.5);
+        }
+        .game-over-modal .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ff0000;
+            animation: confettiFall 3s ease-in-out infinite;
+        }
+
+        @keyframes modalAppear {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.1);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes textGlow {
+            0%, 100% {
+                text-shadow: 0 0 10px #ff0000;
+            }
+            50% {
+                text-shadow: 0 0 20px #ff0000, 0 0 30px #ff0000;
+            }
+        }
+
+        @keyframes levelPulse {
+            0%, 100% {
+                transform: scale(1);
+                text-shadow: 0 0 15px #ffd700;
+            }
+            50% {
+                transform: scale(1.1);
+                text-shadow: 0 0 25px #ffd700, 0 0 35px #ffd700;
+            }
+        }
+
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(-100%) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
         }
 
         @keyframes nameFloat {
@@ -565,24 +633,10 @@
         <div class="result" id="result"></div>
     </div>
 
-    <!-- 排行榜 -->
-    <div class="leaderboard">
-        <h3>
-            🏆 排行榜
-            <span class="clear-leaderboard" onclick="clearLeaderboard()" title="清除排行榜">🗑️</span>
-        </h3>
-        <ol id="leaderboard-list">
-            <!-- 排行榜項目將由 JavaScript 動態添加 -->
-        </ol>
-    </div>
-
     <!-- 遊戲結束彈窗 -->
     <div id="gameOverModal" class="game-over-modal">
         <h2>遊戲結束！</h2>
-        <p>你到達了第 <span id="finalLevel">1</span> 關</p>
-        <input type="text" id="playerName" placeholder="輸入你的名字" maxlength="10">
-        <br>
-        <button onclick="saveScore()">保存分數</button>
+        <p>你到達了第 <span id="finalLevel" class="final-level">1</span> 關</p>
         <button onclick="restartGame()">重新開始</button>
     </div>
 
@@ -920,62 +974,46 @@
             }
         }
 
-        // 排行榜相關函數
-        function loadLeaderboard() {
-            const leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
-            const leaderboardList = document.getElementById('leaderboard-list');
-            leaderboardList.innerHTML = '';
-            
-            leaderboard.sort((a, b) => b.level - a.level)
-                      .slice(0, 5)
-                      .forEach((score, index) => {
-                          const li = document.createElement('li');
-                          li.textContent = `${score.name}: 第${score.level}關`;
-                          leaderboardList.appendChild(li);
-                      });
-        }
-
-        function saveScore() {
-            const playerName = document.getElementById('playerName').value.trim();
-            if (!playerName) {
-                alert('請輸入你的名字！');
-                return;
-            }
-
-            const leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
-            leaderboard.push({
-                name: playerName,
-                level: level,
-                date: new Date().toISOString()
-            });
-
-            localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
-            loadLeaderboard();
-            document.getElementById('gameOverModal').style.display = 'none';
-        }
-
-        function restartGame() {
-            location.reload();
-        }
-
         // 修改遊戲結束處理
         function gameOver() {
             document.getElementById('finalLevel').textContent = level;
-            document.getElementById('gameOverModal').style.display = 'block';
+            const modal = document.getElementById('gameOverModal');
+            modal.style.display = 'block';
+            
+            // 添加彩帶效果
+            for (let i = 0; i < 50; i++) {
+                createConfetti(modal);
+            }
+            
+            // 暫停背景音樂
+            bgMusic.pause();
         }
 
-        // 初始化時載入排行榜
+        function createConfetti(container) {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = Math.random() * 100 + '%';
+            confetti.style.animationDelay = Math.random() * 3 + 's';
+            confetti.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
+            container.appendChild(confetti);
+            
+            // 動畫結束後移除彩帶
+            setTimeout(() => {
+                confetti.remove();
+            }, 3000);
+        }
+
+        function restartGame() {
+            // 重新開始時播放背景音樂
+            bgMusic.currentTime = 0;
+            bgMusic.play();
+            location.reload();
+        }
+
+        // 初始化時更新 BOSS 等級
         window.addEventListener('load', function() {
-            loadLeaderboard();
             updateBossLevel();
         });
-
-        function clearLeaderboard() {
-            if (confirm('確定要清除排行榜嗎？')) {
-                localStorage.removeItem('leaderboard');
-                loadLeaderboard();
-            }
-        }
     </script>
 </body>
 </html>
