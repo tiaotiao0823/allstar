@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全明星猜拳遊戲</title>
+    <style>
+        /* 載入畫面樣式 */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+        .loading-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .loading-text {
+            color: #fff;
+            font-size: 48px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #ff0000;
+            animation: glow 1.5s ease-in-out infinite alternate;
+        }
+        .loading-text.game-title {
+            background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);
+            background-size: 400%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: rainbow 8s linear infinite;
+            text-shadow: none;
+            font-size: 56px;
+            margin-bottom: 30px;
+        }
+        .loading-bar {
+            width: 300px;
+            height: 20px;
+            background-color: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        .loading-progress {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ff6b6b);
+            transition: width 0.3s ease-out;
+        }
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 10px #ff0000;
+            }
+            to {
+                text-shadow: 0 0 20px #ff0000, 0 0 30px #ff0000;
+            }
+        }
+        @keyframes rainbow {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* 原有樣式 */
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+            background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        .boss-container {
+            margin: 20px 0;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .boss-name {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+            transition: all 0.5s;
+            text-transform: uppercase;
+            padding: 10px 20px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            animation: nameFloat 3s ease-in-out infinite;
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+        }
+        .boss-name.level-1 { 
+            color: #2c3e50;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            background: linear-gradient(45deg, #ecf0f1, #ffffff);
+        }
+        .boss-name.level-2 { 
+            color: #3498db;
+            text-shadow: 0 0 10px #3498db;
+            background: linear-gradient(45deg, #e8f4fc, #ffffff);
+        }
+        .boss-name.level-3 { 
+            color: #e74c3c;
+            text-shadow: 0 0 15px #e74c3c;
+            background: linear-gradient(45deg, #fdedec, #ffffff);
+        }
+        .boss-name.level-4 { 
+            color: #9b59b6;
+            text-shadow: 0 0 20px #9b59b6;
+            background: linear-gradient(45deg, #f5eef8, #ffffff);
+            animation: namePulse 2s ease-in-out infinite;
+        }
+        .boss-name.level-5 { 
+            color: #e67e22;
+            text-shadow: 0 0 25px #e67e22;
+            background: linear-gradient(45deg, #fef5e7, #ffffff);
+            animation: namePulse 1.5s ease-in-out infinite;
+        }
+        .boss-name.level-6 {
+            color: #1abc9c;
+            text-shadow: 0 0 20px #1abc9c;
+            background: linear-gradient(45deg, #e8f8f5, #ffffff);
+            animation: nameGlow 2s ease-in-out infinite;
+        }
+        .boss-name.level-7 {
+            color: #34495e;
+            text-shadow: 0 0 20px #34495e;
+            background: linear-gradient(45deg, #ebedef, #ffffff);
+            animation: nameGlow 1.8s ease-in-out infinite;
+        }
+        .boss-name.level-8 {
+            color: #f1c40f;
+            text-shadow: 0 0 20px #f1c40f;
+            background: linear-gradient(45deg, #fef9e7, #ffffff);
+            animation: nameGlow 1.6s ease-in-out infinite;
+        }
+        .boss-name.level-9 {
+            color: #d35400;
+            text-shadow: 0 0 25px #d35400;
+            background: linear-gradient(45deg, #fef2e7, #ffffff);
+            animation: nameGlow 1.4s ease-in-out infinite;
+        }
+        .boss-name.level-10 {
+            color: #c0392b;
+            text-shadow: 0 0 30px #c0392b;
+            background: linear-gradient(45deg, #fdedec, #ffffff);
+            animation: nameGlow 1s ease-in-out infinite;
+        }
+        .boss-name.level-10-plus {
+            color: #ff0000;
+            text-shadow: 
+                0 0 10px #ff0000,
+                0 0 20px #ff0000,
+                0 0 30px #ff0000,
+                0 0 40px #ff0000;
+            background: linear-gradient(45deg, #ffcccc, #ffffff);
+            animation: nameGlow 1s ease-in-out infinite;
+            font-weight: 900;
+            letter-spacing: 2px;
+        }
+        .boss-image {
+            width: 250px;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 15px;
+            margin: 20px 0;
+            transition: transform 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .boss-image.defeated {
+            animation: defeat 1s ease-out forwards;
+        }
+        .boss-image.appear {
+            animation: appear 1s ease-out;
+        }
+        @keyframes defeat {
+            0% {
+                transform: translateX(0) rotate(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(100vw) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        @keyframes appear {
+            0% {
+                transform: scale(0) rotate(-180deg);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1) rotate(0);
+                opacity: 1;
+            }
+        }
+        .lives {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .life-heart {
+            font-size: 30px;
+        }
+        .choices {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        .choice {
+            font-size: 45px;
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 12px;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .choice:hover {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        .result {
+            font-size: 28px;
+            margin: 20px 0;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .level {
+            font-size: 24px;
+            margin: 15px 0;
+            color: #34495e;
+            font-weight: bold;
+        }
+
+        /* 排行榜樣式 */
+        .leaderboard {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 200px;
+        }
+        .leaderboard h3 {
+            margin: 0 0 10px 0;
+            color: #ffd700;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .clear-leaderboard {
+            font-size: 16px;
+            cursor: pointer;
+            color: #ff6b6b;
+            transition: all 0.3s;
+        }
+        .clear-leaderboard:hover {
+            color: #ff0000;
+            transform: scale(1.1);
+        }
+        .leaderboard ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .leaderboard li {
+            margin: 5px 0;
+            color: #fff;
+        }
+        .game-over-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+            z-index: 1000;
+        }
+        .game-over-modal h2 {
+            color: #ff0000;
+            margin-bottom: 20px;
+        }
+        .game-over-modal input {
+            padding: 10px;
+            margin: 10px 0;
+            width: 200px;
+            border-radius: 5px;
+            border: none;
+        }
+        .game-over-modal button {
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #ff0000;
+            color: white;
+            cursor: pointer;
+        }
+        .game-over-modal button:hover {
+            background: #cc0000;
+        }
+
+        @keyframes nameFloat {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        @keyframes namePulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes nameGlow {
+            0%, 100% {
+                text-shadow: 
+                    0 0 10px #ff0000,
+                    0 0 20px #ff0000,
+                    0 0 30px #ff0000,
+                    0 0 40px #ff0000;
+            }
+            50% {
+                text-shadow: 
+                    0 0 20px #ff0000,
+                    0 0 30px #ff0000,
+                    0 0 40px #ff0000,
+                    0 0 50px #ff0000,
+                    0 0 60px #ff0000;
+            }
+        }
+
+        .sound-control {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        .sound-control:hover {
+            transform: scale(1.1);
+        }
+        .sound-control i {
+            font-size: 24px;
+            color: #2c3e50;
+        }
+
+        .inventory {
+            position: fixed;
+            left: 20px;
+            top: 80px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .inventory-toggle {
+            font-size: 30px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .inventory-toggle:hover {
+            transform: scale(1.1);
+        }
+        .inventory-title {
+            font-size: 16px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .inventory-items {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .inventory-items.show {
+            display: block;
+        }
+        .item {
+            font-size: 24px;
+            margin: 5px 0;
+            padding: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-radius: 5px;
+        }
+        .item:hover {
+            background: rgba(0,0,0,0.1);
+            transform: scale(1.05);
+        }
+        .item-description {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .item-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            z-index: 2000;
+            animation: itemPopup 1s ease-out forwards;
+            text-align: center;
+        }
+        .item-notification .item-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .item-notification .item-name {
+            font-size: 24px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        @keyframes itemPopup {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+        .item-tooltip {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 2000;
+            pointer-events: none;
+            display: none;
+        }
+        .item-tooltip.show {
+            display: block;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <!-- 道具欄 -->
+    <div class="inventory">
+        <div class="inventory-toggle" onclick="toggleInventory()">🎒</div>
+        <div class="inventory-title">道具欄</div>
+        <div class="inventory-items" id="inventoryItems">
+            <!-- 道具將由 JavaScript 動態添加 -->
+        </div>
+    </div>
+
+    <!-- 道具提示框 -->
+    <div class="item-tooltip" id="itemTooltip"></div>
+
+    <!-- 音效控制按鈕 -->
+    <div class="sound-control" onclick="toggleSound()">
+        <i class="fas fa-volume-up" id="soundIcon"></i>
+    </div>
+
+    <!-- 背景音樂 -->
+    <audio id="bgMusic" loop>
+        <source src="Game on.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- 載入畫面 -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-text game-title">全明星猜拳遊戲</div>
+        <div class="loading-text">LOADING</div>
+        <div class="loading-bar">
+            <div class="loading-progress" id="loadingProgress"></div>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <h1>全明星猜拳遊戲</h1>
+        <div class="level">關卡: <span id="level">1</span></div>
+        
+        <div class="boss-container">
+            <h2>Boss</h2>
+            <div id="boss-name" class="boss-name level-1">猴哥低配版</div>
+            <img id="boss-image" class="boss-image" src="猴哥低配版.jpg" alt="Boss">
+            <div class="lives" id="boss-lives">
+                <span class="life-heart">❤️</span>
+                <span class="life-heart">❤️</span>
+                <span class="life-heart">❤️</span>
+            </div>
+        </div>
+
+        <div class="player-container">
+            <h2>玩家</h2>
+            <div class="lives" id="player-lives">
+                <span class="life-heart">❤️</span>
+                <span class="life-heart">❤️</span>
+                <span class="life-heart">❤️</span>
+            </div>
+        </div>
+
+        <div class="choices">
+            <span class="choice" onclick="play('scissors')">✂️</span>
+            <span class="choice" onclick="play('rock')">✊</span>
+            <span class="choice" onclick="play('paper')">✋</span>
+        </div>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <!-- 排行榜 -->
+    <div class="leaderboard">
+        <h3>
+            🏆 排行榜
+            <span class="clear-leaderboard" onclick="clearLeaderboard()" title="清除排行榜">🗑️</span>
+        </h3>
+        <ol id="leaderboard-list">
+            <!-- 排行榜項目將由 JavaScript 動態添加 -->
+        </ol>
+    </div>
+
+    <!-- 遊戲結束彈窗 -->
+    <div id="gameOverModal" class="game-over-modal">
+        <h2>遊戲結束！</h2>
+        <p>你到達了第 <span id="finalLevel">1</span> 關</p>
+        <input type="text" id="playerName" placeholder="輸入你的名字" maxlength="10">
+        <br>
+        <button onclick="saveScore()">保存分數</button>
+        <button onclick="restartGame()">重新開始</button>
+    </div>
+
+    <script>
+        // 音效控制
+        let isMuted = false;
+        const bgMusic = document.getElementById('bgMusic');
+        const soundIcon = document.getElementById('soundIcon');
+
+        function toggleSound() {
+            isMuted = !isMuted;
+            bgMusic.muted = isMuted;
+            soundIcon.className = isMuted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
+        }
+
+        // 載入畫面邏輯
+        window.addEventListener('load', function() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            const loadingProgress = document.getElementById('loadingProgress');
+            let progress = 0;
+
+            // 模擬載入進度
+            const loadingInterval = setInterval(() => {
+                progress += 5;
+                loadingProgress.style.width = progress + '%';
+                
+                if (progress >= 100) {
+                    clearInterval(loadingInterval);
+                    setTimeout(() => {
+                        loadingScreen.classList.add('fade-out');
+                        // 開始播放背景音樂
+                        bgMusic.play().catch(function(error) {
+                            console.log("自動播放被阻止，請點擊頁面以開始播放音樂");
+                        });
+                    }, 500);
+                }
+            }, 100);
+        });
+
+        // 點擊頁面時開始播放音樂
+        document.addEventListener('click', function() {
+            if (bgMusic.paused && !isMuted) {
+                bgMusic.play();
+            }
+        }, { once: true });
+
+        let playerLives = 3;
+        let bossLives = 3;
+        let level = 1;
+        const bossImages = [
+            '猴哥低配版.jpg',
+            '裝甲車no.114514.jpg',
+            '唐唐戰車.jpg',
+            'boss4.jpg',
+            'boss5.jpg',
+            'boss6.jpg',
+            'boss7.jpg',
+            'boss8.jpg',
+            'boss9.jpg',
+            'boss10.jpg'
+        ];
+        const bossNames = [
+            '猴哥低配版',
+            '裝甲車no.114514',
+            '唐唐戰車',
+            '鋼鐵俠',
+            '蜘蛛人',
+            '雷神索爾',
+            '黑寡婦',
+            '奇異博士',
+            '驚奇隊長',
+            '終極 Boss'
+        ];
+
+        function updateLives() {
+            const playerLivesContainer = document.getElementById('player-lives');
+            const bossLivesContainer = document.getElementById('boss-lives');
+            
+            playerLivesContainer.innerHTML = '';
+            bossLivesContainer.innerHTML = '';
+            
+            for (let i = 0; i < playerLives; i++) {
+                playerLivesContainer.innerHTML += '<span class="life-heart">❤️</span>';
+            }
+            
+            for (let i = 0; i < bossLives; i++) {
+                bossLivesContainer.innerHTML += '<span class="life-heart">❤️</span>';
+            }
+        }
+
+        function getBossChoice() {
+            const choices = ['rock', 'paper', 'scissors'];
+            return choices[Math.floor(Math.random() * 3)];
+        }
+
+        function determineWinner(playerChoice, bossChoice) {
+            if (playerChoice === bossChoice) return '平手';
+            
+            if (
+                (playerChoice === 'rock' && bossChoice === 'scissors') ||
+                (playerChoice === 'paper' && bossChoice === 'rock') ||
+                (playerChoice === 'scissors' && bossChoice === 'paper')
+            ) {
+                return '玩家贏';
+            }
+            
+            return 'Boss贏';
+        }
+
+        function updateBossLevel() {
+            const bossName = document.getElementById('boss-name');
+            const bossImage = document.getElementById('boss-image');
+            
+            // 更新 Boss 名稱和等級樣式
+            if (level <= 10) {
+                bossName.textContent = bossNames[level - 1];
+                bossName.className = 'boss-name level-' + level;
+            } else {
+                // 第十關之後隨機選擇前 10 關的名稱
+                const randomIndex = Math.floor(Math.random() * 10);
+                bossName.textContent = bossNames[randomIndex];
+                bossName.className = 'boss-name level-10-plus';
+            }
+            
+            // 添加出現動畫
+            bossImage.classList.remove('appear');
+            void bossImage.offsetWidth; // 觸發重繪
+            bossImage.classList.add('appear');
+        }
+
+        // 道具系統
+        const items = {
+            '💖': { name: '生命藥水', description: '恢復一點生命值', effect: '立即恢復一點生命值' },
+            '⚡': { name: '閃電', description: '有50%機率直接擊敗BOSS', effect: '有50%機率直接擊敗當前BOSS' },
+            '👁️': { name: '透視鏡', description: '可以看到對手的選擇', effect: '顯示對手下一次的選擇' },
+            '🍌': { name: '香蕉', description: '扣除對手一點生命值', effect: '扣除對手一點生命值，但有機率被攔截' }
+        };
+
+        let inventory = [];
+        let isInventoryVisible = false;
+        let tooltipTimeout;
+        let longPressTimeout;
+
+        function toggleInventory() {
+            const inventoryItems = document.getElementById('inventoryItems');
+            isInventoryVisible = !isInventoryVisible;
+            inventoryItems.classList.toggle('show');
+        }
+
+        function showTooltip(event, item) {
+            const tooltip = document.getElementById('itemTooltip');
+            tooltip.textContent = items[item].effect;
+            tooltip.style.left = (event.pageX + 10) + 'px';
+            tooltip.style.top = (event.pageY + 10) + 'px';
+            tooltip.classList.add('show');
+        }
+
+        function hideTooltip() {
+            const tooltip = document.getElementById('itemTooltip');
+            tooltip.classList.remove('show');
+        }
+
+        function showItemNotification(item) {
+            const notification = document.createElement('div');
+            notification.className = 'item-notification';
+            notification.innerHTML = `
+                <div class="item-icon">${item}</div>
+                <div class="item-name">獲得 ${items[item].name}！</div>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 2000);
+        }
+
+        function addRandomItem() {
+            const itemKeys = Object.keys(items);
+            const randomItem = itemKeys[Math.floor(Math.random() * itemKeys.length)];
+            inventory.push(randomItem);
+            updateInventory();
+            showItemNotification(randomItem);
+        }
+
+        function updateInventory() {
+            const inventoryItems = document.getElementById('inventoryItems');
+            inventoryItems.innerHTML = '';
+            
+            inventory.forEach((item, index) => {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'item';
+                itemElement.innerHTML = `
+                    ${item}
+                    <div class="item-description">${items[item].name}</div>
+                `;
+                
+                // 添加長按事件
+                itemElement.addEventListener('mousedown', (e) => {
+                    longPressTimeout = setTimeout(() => {
+                        showTooltip(e, item);
+                    }, 500);
+                });
+
+                itemElement.addEventListener('mouseup', () => {
+                    clearTimeout(longPressTimeout);
+                    hideTooltip();
+                });
+
+                itemElement.addEventListener('mouseleave', () => {
+                    clearTimeout(longPressTimeout);
+                    hideTooltip();
+                });
+
+                itemElement.addEventListener('mousemove', (e) => {
+                    if (document.getElementById('itemTooltip').classList.contains('show')) {
+                        showTooltip(e, item);
+                    }
+                });
+
+                itemElement.onclick = () => useItem(index);
+                inventoryItems.appendChild(itemElement);
+            });
+        }
+
+        function useItem(index) {
+            const item = inventory[index];
+            switch(item) {
+                case '💖':
+                    if (playerLives < 3) {
+                        playerLives++;
+                        updateLives();
+                    }
+                    break;
+                case '⚡':
+                    // 50% 機率直接擊敗 BOSS
+                    if (Math.random() < 0.5) {
+                        bossLives = 0;
+                        updateLives();
+                        document.getElementById('result').textContent = '閃電擊中！BOSS 被擊敗了！';
+                        
+                        setTimeout(() => {
+                            level++;
+                            bossLives = 3;
+                            document.getElementById('level').textContent = level;
+                            if (level <= bossImages.length) {
+                                const bossImage = document.getElementById('boss-image');
+                                bossImage.src = bossImages[level - 1];
+                                bossImage.classList.remove('defeated');
+                                updateBossLevel();
+                                // 立即更新 BOSS 血條
+                                const bossLivesContainer = document.getElementById('boss-lives');
+                                bossLivesContainer.innerHTML = '<span class="life-heart">❤️</span><span class="life-heart">❤️</span><span class="life-heart">❤️</span>';
+                            }
+                            document.getElementById('result').textContent = '恭喜！進入下一關！';
+                            // 每過一關給予隨機道具
+                            addRandomItem();
+                        }, 1000);
+                    } else {
+                        document.getElementById('result').textContent = '閃電沒有擊中！';
+                    }
+                    break;
+                case '👁️':
+                    const bossChoice = getBossChoice();
+                    alert(`對手選擇了: ${bossChoice === 'rock' ? '✊' : bossChoice === 'paper' ? '✋' : '✂️'}`);
+                    break;
+                case '🍌':
+                    // 30% 機率被攔截
+                    if (Math.random() < 0.3) {
+                        playerLives--;
+                        updateLives();
+                        document.getElementById('result').textContent = '香蕉被猴豆攔截了！';
+                    } else {
+                        if (bossLives > 0) {
+                            bossLives--;
+                            updateLives();
+                            document.getElementById('result').textContent = '香蕉攻擊成功！';
+                        }
+                    }
+                    break;
+            }
+            inventory.splice(index, 1);
+            updateInventory();
+        }
+
+        // 修改 play 函數以支援道具效果
+        function play(playerChoice) {
+            const bossChoice = getBossChoice();
+            let result = determineWinner(playerChoice, bossChoice);
+            
+            // 處理道具效果
+            if (window.nextRoundWin) {
+                result = '玩家贏';
+                window.nextRoundWin = false;
+            } else if (window.nextRoundShield && result === 'Boss贏') {
+                result = '平手';
+                window.nextRoundShield = false;
+            }
+            
+            if (result === '玩家贏') {
+                bossLives--;
+                document.getElementById('result').textContent = '你贏了！';
+            } else if (result === 'Boss贏') {
+                playerLives--;
+                document.getElementById('result').textContent = 'Boss贏了！';
+            } else {
+                document.getElementById('result').textContent = '平手！';
+            }
+
+            updateLives();
+
+            if (bossLives === 0) {
+                const bossImage = document.getElementById('boss-image');
+                bossImage.classList.add('defeated');
+                
+                setTimeout(() => {
+                    level++;
+                    bossLives = 3;
+                    document.getElementById('level').textContent = level;
+                    if (level <= bossImages.length) {
+                        bossImage.src = bossImages[level - 1];
+                        bossImage.classList.remove('defeated');
+                        updateBossLevel();
+                        // 立即更新 BOSS 血條
+                        const bossLivesContainer = document.getElementById('boss-lives');
+                        bossLivesContainer.innerHTML = '<span class="life-heart">❤️</span><span class="life-heart">❤️</span><span class="life-heart">❤️</span>';
+                    }
+                    document.getElementById('result').textContent = '恭喜！進入下一關！';
+                    // 每過一關給予隨機道具
+                    addRandomItem();
+                }, 1000);
+            }
+
+            if (playerLives === 0) {
+                gameOver();
+            }
+        }
+
+        // 排行榜相關函數
+        function loadLeaderboard() {
+            const leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+            const leaderboardList = document.getElementById('leaderboard-list');
+            leaderboardList.innerHTML = '';
+            
+            leaderboard.sort((a, b) => b.level - a.level)
+                      .slice(0, 5)
+                      .forEach((score, index) => {
+                          const li = document.createElement('li');
+                          li.textContent = `${score.name}: 第${score.level}關`;
+                          leaderboardList.appendChild(li);
+                      });
+        }
+
+        function saveScore() {
+            const playerName = document.getElementById('playerName').value.trim();
+            if (!playerName) {
+                alert('請輸入你的名字！');
+                return;
+            }
+
+            const leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+            leaderboard.push({
+                name: playerName,
+                level: level,
+                date: new Date().toISOString()
+            });
+
+            localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+            loadLeaderboard();
+            document.getElementById('gameOverModal').style.display = 'none';
+        }
+
+        function restartGame() {
+            location.reload();
+        }
+
+        // 修改遊戲結束處理
+        function gameOver() {
+            document.getElementById('finalLevel').textContent = level;
+            document.getElementById('gameOverModal').style.display = 'block';
+        }
+
+        // 初始化時載入排行榜
+        window.addEventListener('load', function() {
+            loadLeaderboard();
+            updateBossLevel();
+        });
+
+        function clearLeaderboard() {
+            if (confirm('確定要清除排行榜嗎？')) {
+                localStorage.removeItem('leaderboard');
+                loadLeaderboard();
+            }
+        }
+    </script>
+</body>
+</html>
