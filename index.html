@@ -301,18 +301,22 @@
         .game-over-modal {
             display: none;
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: rgba(0, 0, 0, 0.95);
             padding: 30px;
-            border-radius: 20px;
             color: white;
             text-align: center;
             z-index: 1000;
             box-shadow: 0 0 30px rgba(255, 0, 0, 0.5);
             animation: modalAppear 0.5s ease-out;
             border: 2px solid #ff0000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
         .game-over-modal h2 {
             color: #ff0000;
@@ -562,6 +566,24 @@
         .item-tooltip.show {
             display: block;
         }
+        .start-game-btn {
+            display: none;
+            padding: 20px 40px;
+            font-size: 24px;
+            background: linear-gradient(45deg, #ff0000, #ff6b6b);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(255, 0, 0, 0.3);
+        }
+
+        .start-game-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 20px rgba(255, 0, 0, 0.5);
+        }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
@@ -585,10 +607,21 @@
 
     <!-- 背景音樂 -->
     <audio id="bgMusic" loop preload="auto">
-        <source src="./audio/Game_on.mp3" type="audio/mpeg">
-        <source src="./audio/Game_on.ogg" type="audio/ogg">
-        <source src="./audio/Game_on.wav" type="audio/wav">
+        <source src="audio/Game_on.mp3" type="audio/mpeg">
+        <source src="audio/Game_on.ogg" type="audio/ogg">
+        <source src="audio/Game_on.wav" type="audio/wav">
         您的瀏覽器不支援音訊播放。
+    </audio>
+
+    <!-- 音效 -->
+    <audio id="winSound" preload="auto">
+        <source src="audio/win.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="loseSound" preload="auto">
+        <source src="audio/lose.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="drawSound" preload="auto">
+        <source src="audio/draw.mp3" type="audio/mpeg">
     </audio>
 
     <!-- 載入畫面 -->
@@ -598,6 +631,7 @@
         <div class="loading-bar">
             <div class="loading-progress" id="loadingProgress"></div>
         </div>
+        <button class="start-game-btn" id="startGameBtn">開始遊戲</button>
     </div>
 
     <div class="game-container">
@@ -644,11 +678,17 @@
         // 音效控制
         let isMuted = false;
         const bgMusic = document.getElementById('bgMusic');
+        const winSound = document.getElementById('winSound');
+        const loseSound = document.getElementById('loseSound');
+        const drawSound = document.getElementById('drawSound');
         const soundIcon = document.getElementById('soundIcon');
 
         function toggleSound() {
             isMuted = !isMuted;
             bgMusic.muted = isMuted;
+            winSound.muted = isMuted;
+            loseSound.muted = isMuted;
+            drawSound.muted = isMuted;
             soundIcon.className = isMuted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
         }
 
@@ -656,7 +696,12 @@
         window.addEventListener('load', function() {
             const loadingScreen = document.getElementById('loadingScreen');
             const loadingProgress = document.getElementById('loadingProgress');
+            const startGameBtn = document.getElementById('startGameBtn');
+            const gameOverModal = document.getElementById('gameOverModal');
             let progress = 0;
+
+            // 確保遊戲結束畫面一開始是隱藏的
+            gameOverModal.style.display = 'none';
 
             // 模擬載入進度
             const loadingInterval = setInterval(() => {
@@ -666,22 +711,26 @@
                 if (progress >= 100) {
                     clearInterval(loadingInterval);
                     setTimeout(() => {
-                        loadingScreen.classList.add('fade-out');
-                        // 開始播放背景音樂
-                        bgMusic.play().catch(function(error) {
-                            console.log("自動播放被阻止，請點擊頁面以開始播放音樂");
-                        });
+                        startGameBtn.style.display = 'block';
                     }, 500);
                 }
             }, 100);
-        });
 
-        // 點擊頁面時開始播放音樂
-        document.addEventListener('click', function() {
-            if (bgMusic.paused && !isMuted) {
+            // 開始遊戲按鈕點擊事件
+            startGameBtn.addEventListener('click', function() {
+                loadingScreen.classList.add('fade-out');
                 bgMusic.play();
-            }
-        }, { once: true });
+                // 初始化遊戲狀態
+                playerLives = 3;
+                bossLives = 3;
+                level = 1;
+                document.getElementById('level').textContent = level;
+                updateLives();
+                updateBossLevel();
+                // 確保遊戲結束畫面是隱藏的
+                gameOverModal.style.display = 'none';
+            });
+        });
 
         let playerLives = 3;
         let bossLives = 3;
@@ -921,7 +970,7 @@
             updateInventory();
         }
 
-        // 修改 play 函數以支援道具效果
+        // 修改 play 函數以支援音效
         function play(playerChoice) {
             const bossChoice = getBossChoice();
             let result = determineWinner(playerChoice, bossChoice);
@@ -938,11 +987,14 @@
             if (result === '玩家贏') {
                 bossLives--;
                 document.getElementById('result').textContent = '你贏了！';
+                if (!isMuted) winSound.play();
             } else if (result === 'Boss贏') {
                 playerLives--;
                 document.getElementById('result').textContent = 'Boss贏了！';
+                if (!isMuted) loseSound.play();
             } else {
                 document.getElementById('result').textContent = '平手！';
+                if (!isMuted) drawSound.play();
             }
 
             updateLives();
@@ -978,7 +1030,7 @@
         function gameOver() {
             document.getElementById('finalLevel').textContent = level;
             const modal = document.getElementById('gameOverModal');
-            modal.style.display = 'block';
+            modal.style.display = 'flex';  // 改為 flex 以支援全畫面顯示
             
             // 添加彩帶效果
             for (let i = 0; i < 50; i++) {
@@ -1007,7 +1059,15 @@
             // 重新開始時播放背景音樂
             bgMusic.currentTime = 0;
             bgMusic.play();
-            location.reload();
+            // 重置遊戲狀態
+            playerLives = 3;
+            bossLives = 3;
+            level = 1;
+            document.getElementById('level').textContent = level;
+            updateLives();
+            updateBossLevel();
+            // 隱藏遊戲結束畫面
+            document.getElementById('gameOverModal').style.display = 'none';
         }
 
         // 初始化時更新 BOSS 等級
